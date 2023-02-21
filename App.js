@@ -1,11 +1,11 @@
-import * as React from 'react';
-import { Text, View, Image, TouchableOpacity,TextInput,ScrollView, StyleSheet, Dimensions } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import * as React from 'react';
+import { Dimensions, Image, StyleSheet } from 'react-native';
 
-import AboutScreen from  './screens/About';
-import SearchScreen from  './screens/Search';
-import HomeScreen from  './screens/Home';
+import AboutScreen from './screens/About';
+import HomeScreen from './screens/Home';
+import SearchScreen from './screens/Search';
 
 
 const largura = Dimensions.get('screen').width
