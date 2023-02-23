@@ -1,49 +1,27 @@
 // Homescreen.js
 import React from 'react';
-import { TouchableOpacity, TextInput, View, ScrollView, Text, Image, Dimensions, StyleSheet,ImageBackground } from 'react-native';
+import { TouchableOpacity, TextInput, View, ScrollView, Text, Image, Dimensions, StyleSheet, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-navigation'
 // import styles from './style';
-import { FontAwesome5 } from '@expo/vector-icons'; 
-
-
-const TabIcon = (props) => (
-  
-  <FontAwesome5
-    name={'gamepad'}
-    size={20}
-    color={props.focused ? '#ab8008' : 'white'}
-  />
-)
+import { FontAwesome5 } from '@expo/vector-icons';
 
 export default class AboutScreen extends React.Component {
 
-  static navigationOptions = {
-    tabBarIcon: TabIcon
-  };
-
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      username: ''
-    };
-  }
-
-  setName(username){
-    this.setState({ username })
-  }
-
   render() {
-    console.disableYellowBox = true; 
-    return (
-      
-      
-      
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>About!</Text>
 
-  </View>
-      
+    return (
+
+
+
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 25, color: "#043d60" }}>Versão:</Text>
+        <Text style={{ fontSize: 15, color: "#000" }}>1.0.0</Text>
+        <Text></Text>
+
+        <Text style={{ fontSize: 25, color: "#043d60" }}>Contato:</Text>
+        <Text style={{ fontSize: 15, color: "#000" }}>dev@gmail.com</Text>
+      </View >
+
     )
   }
 }
@@ -91,13 +69,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   imageTop: {
-    width: largura-20,
-    height: largura/4,
+    width: largura - 20,
+    height: largura / 4,
 
   },
   icon: {
-    width: largura/1.1,
-    height: largura /2.4,
+    width: largura / 1.1,
+    height: largura / 2.4,
   },
   image: {
     flex: 1,

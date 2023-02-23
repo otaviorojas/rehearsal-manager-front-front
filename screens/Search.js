@@ -26,8 +26,9 @@ const SearchScreen = ({ navigation, route }) => {
   //variaveis tratadas separadamente
   const [seachName, setSeachName] = useState();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [address, setAddress] = useState(false);
+  const [isExpandedSort, setIsExpandedSort] = useState(false);
   const [ensaios, setEnsaios] = useState();
+  const [isPressed, setIsPressed] = useState(false);
   const [isLoading, setLoading] = useState(
     // necessario para o IOS
     ForceTouchGestureHandler.forceTouchAvailable
@@ -38,6 +39,7 @@ const SearchScreen = ({ navigation, route }) => {
     setLoading(true)
     setEnsaios(null);
     setIsExpanded(false);
+    setIsExpandedSort(false)
     const controller = new AbortController();
     const signal = controller.signal;
     // ordenação pelo nome do local
@@ -46,7 +48,7 @@ const SearchScreen = ({ navigation, route }) => {
     // regex => ^: iniciado por, i: coloca a string em maiusculo
     //se retirar o ^ a busca fica LIKE 
     const filter = seachName
-      ? { "locality.name": { $regex: "^" + seachName, $options: "i" } }
+      ? { "locality.name": { $regex: "" + seachName, $options: "i" } }
       : null;
     console.log(filter)
     find("ccb_rehearsal_manager", "rehearsal", filter, sort, signal).then(
@@ -69,6 +71,7 @@ const SearchScreen = ({ navigation, route }) => {
     setLoading(true)
     setEnsaios(null);
     setIsExpanded(false);
+    setIsExpandedSort(false)
     const controller = new AbortController();
     const signal = controller.signal;
 
@@ -90,18 +93,16 @@ const SearchScreen = ({ navigation, route }) => {
 
   };
 
-  //Montango a URL para o MAPA (baseado no SO)
-  const url = Platform.select({
-    ios: 'maps:0,0?q=' + address + '',
-    android: 'geo:0,0?q=' + address + '',
-  })
+  const sortByName = () => {
+    setEnsaios((ensaio) => [...ensaio.reverse()]);
+  };
 
   const ExpandableView = ({ expanded = false }) => {
     const [height] = useState(new Animated.Value(0));
 
     useEffect(() => {
       Animated.timing(height, {
-        toValue: expanded ? 200 : 0,
+        toValue: expanded ? 180 : 0,
         duration: 150,
         useNativeDriver: false,
       }).start();
@@ -111,7 +112,20 @@ const SearchScreen = ({ navigation, route }) => {
 
     return (
       <Animated.View style={{ height, backgroundColor: "#f0f0f0" }}>
-        <Text style={styles.textList}>Dia da Semana</Text>
+        <View style={styles.lineSpaceBetwenn}>
+          <Text style={styles.textList}>Dia da Semana</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setIsExpanded(false)
+            }}>
+            <Icon
+              size={12}
+              reverse
+              name='close'
+              color='#CFCCCC'
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.footerWrapper}>
 
           <TouchableOpacity
@@ -130,7 +144,7 @@ const SearchScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.textList}>Ordenação</Text>
+        <Text style={styles.textList}>Posição no mês:</Text>
         <View style={styles.footerWrapper}>
           <TouchableOpacity
             onPress={() => {
@@ -167,6 +181,55 @@ const SearchScreen = ({ navigation, route }) => {
     );
   };
 
+  const ExpandableSortView = ({ expanded = false }) => {
+    const [height] = useState(new Animated.Value(0));
+
+    useEffect(() => {
+      Animated.timing(height, {
+        toValue: expanded ? 100 : 0,
+        duration: 150,
+        useNativeDriver: false,
+      }).start();
+    }, [expanded, height]);
+
+    // console.log('rerendered');
+
+    return (
+      <Animated.View style={{ height, backgroundColor: "#f0f0f0" }}>
+
+        <View style={styles.lineSpaceBetwenn}>
+          <Text style={styles.textList}>Ordenar por:</Text>
+          <TouchableOpacity
+            onPress={() => {
+              setIsExpandedSort(false)
+            }}>
+            <Icon
+              size={12}
+              reverse
+              name='close'
+              color='#CFCCCC'
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.footerWrapper}>
+
+          <TouchableOpacity
+            onPress={() => {
+              setIsPressed(!isPressed)
+              sortByName();
+            }}>
+
+            {isPressed ? <Text style={styles.sortButtonTab}>Nome ↓ </Text> :
+              <Text style={styles.sortButtonTab}>Nome ↑ </Text>}
+
+
+          </TouchableOpacity>
+        </View>
+      </Animated.View >
+    );
+  };
+
   return (
     <View style={styles.main}>
       <View style={styles.container}>
@@ -194,6 +257,7 @@ const SearchScreen = ({ navigation, route }) => {
           <TouchableOpacity
             onPress={() => {
               setIsExpanded(!isExpanded);
+              setIsExpandedSort(false)
             }}
           >
             <Text style={styles.buttonFilter}>Filtro</Text>
@@ -204,6 +268,7 @@ const SearchScreen = ({ navigation, route }) => {
             onPress={() => {
               setEnsaios(null);
               setIsExpanded(false)
+              setIsExpandedSort(false)
               Keyboard.dismiss()
             }}
           >
@@ -217,12 +282,24 @@ const SearchScreen = ({ navigation, route }) => {
 
         {isExpanded ? <ExpandableView expanded={isExpanded} /> : ""}
 
+        {isExpandedSort ? <ExpandableSortView expanded={isExpandedSort} /> : ""}
 
         {/* Lista de resultados: */}
         {ensaios && ensaios.length > 0 && ensaios ? (
-
           <ScrollView>
-            <Text style={styles.smallText}>Encontrados: <Text style={{ fontWeight: 'bold' }}>{ensaios.length}</Text></Text>
+            <View style={styles.lineSpaceBetwenn}>
+              <Text style={styles.smallText}>Encontrados: <Text style={{ fontWeight: 'bold' }}>{ensaios.length}</Text></Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsExpanded(false)
+                  setIsExpandedSort(!isExpandedSort)
+
+                }}>
+                <Text style={styles.smallText}>Ordenar ↑↓</Text>
+              </TouchableOpacity>
+
+            </View>
+
             {ensaios.map((ensaio, idx) => (
               <>
                 {/* Ativar esse touchable em caso futuro (pagina de detalhes) */}
@@ -260,14 +337,22 @@ const SearchScreen = ({ navigation, route }) => {
                   </View>
 
                   <View style={styles.colunms}>
-
                     {/* Pendente: Limpar o endereço antigo antes de atualizar */}
                     <TouchableOpacity key={idx} onPress={() => {
-                      setAddress(ensaio.locality.address + ' - ' + ensaio.locality.zip_code)
+
+                      //Montango a URL para o MAPA (baseado no SO)
+
+                      console.log(ensaio.locality.address + ensaio.locality.zip_code)
+                      let url = Platform.select({
+                        ios: 'maps:0,0?q=' + ensaio.locality.address + '-' + ensaio.locality.zip_code,
+                        android: 'geo:0,0?q=' + ensaio.locality.address + '-' + ensaio.locality.zip_code
+                      })
+
                       Linking.openURL(url)
                     }
                     }>
                       <Icon key={idx}
+
                         reverse
                         name='map'
                         type='ionicon'
@@ -303,7 +388,7 @@ const SearchScreen = ({ navigation, route }) => {
           </View>
         )}
       </View>
-    </View>
+    </View >
 
 
   );
@@ -327,6 +412,10 @@ const styles = StyleSheet.create({
   },
   line: {
     flexDirection: "row",
+  },
+  lineSpaceBetwenn: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   colunms: {
     flexDirection: "column",
@@ -398,6 +487,17 @@ const styles = StyleSheet.create({
     // justifyContent: 'center',
     // alignItems: 'center',
     maxWidth: 80,
+    height: 30,
+    padding: 5,
+    borderRadius: 13,
+    borderStyle: "solid",
+    borderWidth: 1.3,
+    borderColor: "rgba(131, 143, 158, 0.7)",
+    marginRight: 10,
+    marginTop: -10,
+  },
+  sortButtonTab: {
+    maxWidth: 100,
     height: 30,
     padding: 5,
     borderRadius: 13,

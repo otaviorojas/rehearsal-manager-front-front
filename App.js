@@ -107,9 +107,9 @@ export default function App() {
           tabBarInactiveTintColor: 'gray',
         })}
       >
-        <Tab.Screen name="Pesquisar" component={SearchScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' } }} />
-        <Tab.Screen name="Inicio" component={HomeScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' } }} />
-        <Tab.Screen name="Sobre" component={AboutScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' } }} />
+        <Tab.Screen name="Pesquisar" component={SearchScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' }, unmountOnBlur: true }} />
+        <Tab.Screen name="Inicio" component={HomeScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' }, unmountOnBlur: true }} />
+        <Tab.Screen name="Sobre" component={AboutScreen} options={{ headerShown: true, headerStyle: { backgroundColor: '#d4d9e2ff' }, unmountOnBlur: true }} />
         {/* name="Settings" */}
       </Tab.Navigator>
     </NavigationContainer>
