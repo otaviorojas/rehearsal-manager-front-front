@@ -1,30 +1,29 @@
 // Homescreen.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Keyboard,
+  Linking,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Linking,
-  Keyboard
 } from "react-native";
-import {
-  ForceTouchGestureHandler,
-  ScrollView,
-} from "react-native-gesture-handler";
+import { ForceTouchGestureHandler, ScrollView } from "react-native-gesture-handler";
 import { find } from "../FetchAPI";
-import TextCentered from "./TextCentered";
 // import styles from './style';
-import { Icon } from 'react-native-elements'
-
-
+import { Icon } from "react-native-elements";
+import FilterButtons from "../components/FilterButtons";
+import Modal from "../components/Modal";
+import FilterBean from "../FilterBean";
+import TextCentered from "../components/TextCentered";
+import EnsaiosList from "../components/EnsaiosList";
+import { DAY, LOCALITY_NAME, NAME_WEEK_DAY } from "../constants/TagNames";
 
 const SearchScreen = ({ navigation, route }) => {
   //variaveis tratadas separadamente
-  const [seachName, setSeachName] = useState();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isExpandedSort, setIsExpandedSort] = useState(false);
   const [ensaios, setEnsaios] = useState();
@@ -34,54 +33,38 @@ const SearchScreen = ({ navigation, route }) => {
     ForceTouchGestureHandler.forceTouchAvailable
   );
 
-  const getAll = async () => {
-    Keyboard.dismiss()
-    setLoading(true)
+  const [filterBean, setFilterBean] = useState(new FilterBean());
+
+  const getByFilters = async (bean) => {
+    Keyboard.dismiss();
+    setLoading(true);
     setEnsaios(null);
-    setIsExpanded(false);
-    setIsExpandedSort(false)
     const controller = new AbortController();
     const signal = controller.signal;
-    // ordenação pelo nome do local
-    const sort = { "locality.name": 1 };
-    // filtra utilizando o campo de busca
-    // regex => ^: iniciado por, i: coloca a string em maiusculo
-    //se retirar o ^ a busca fica LIKE 
-    const filter = seachName
-      ? { "locality.name": { $regex: "" + seachName, $options: "i" } }
+
+    const filters = [];
+
+    const searchName = bean.searchName
+      ? { "locality.name": { $regex: bean.searchName, $options: "i" } }
       : null;
-    console.log(filter)
-    find("ccb_rehearsal_manager", "rehearsal", filter, sort, signal).then(
-      (response) => {
-        console.log("REGISTROS: ", response);
-        setEnsaios(response.documents);
-        setLoading(false);
-      }
-    );
 
-    return () => {
-      console.log("abortou");
-      controller.abort();
-    };
-  };
-
-  const getByFilters = (variableName, value) => {
-
-    Keyboard.dismiss()
-    setLoading(true)
-    setEnsaios(null);
-    setIsExpanded(false);
-    setIsExpandedSort(false)
-    const controller = new AbortController();
-    const signal = controller.signal;
+    searchName ? filters.push(searchName) : "";
 
     // define em um formato key value a busca: nome do campo + valor
-    var search = {};
-    search[variableName] = value;
+    const weekDay = getValidValues(bean, NAME_WEEK_DAY);
+    const orWeekDay = { name_week_day: { $in: weekDay } };
+    weekDay.length > 0 ? filters.push(orWeekDay) : "";
 
-    find("ccb_rehearsal_manager", "rehearsal", search, signal).then(
+    const day = getValidValues(bean, DAY);
+    const orDay = { day: { $in: day } };
+    day.length > 0 ? filters.push(orDay) : "";
+
+    // ordenação pelo nome da localidade
+    const sort = { [LOCALITY_NAME]: 1 };
+
+    const filter = filters.length > 0 ? { $and: filters } : null;
+    find("ccb_rehearsal_manager", "rehearsal", filter, sort, signal).then(
       (response) => {
-        console.log("REGISTROS: ", response);
         setEnsaios(response.documents);
         setLoading(false);
       }
@@ -90,99 +73,23 @@ const SearchScreen = ({ navigation, route }) => {
       console.log("abortou");
       controller.abort();
     };
-
   };
+
+  const getValidValues = (bean, tagName) => {
+    const values = [];
+    Object.entries(bean)
+        .filter(([key, value]) => value.tagName == tagName)
+        .map(([key, value]) => value.isActive === true ? values.push(key) : ""
+        );
+    return values;
+}
 
   const sortByName = () => {
     setEnsaios((ensaio) => [...ensaio.reverse()]);
   };
 
-  const ExpandableView = ({ expanded = false }) => {
-    const [height] = useState(new Animated.Value(0));
-
-    useEffect(() => {
-      Animated.timing(height, {
-        toValue: expanded ? 180 : 0,
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
-    }, [expanded, height]);
-
-    // console.log('rerendered');
-
-    return (
-      <Animated.View style={{ height, backgroundColor: "#f0f0f0" }}>
-        <View style={styles.lineSpaceBetwenn}>
-          <Text style={styles.textList}>Dia da Semana</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setIsExpanded(false)
-            }}>
-            <Icon
-              size={12}
-              reverse
-              name='close'
-              color='#CFCCCC'
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.footerWrapper}>
-
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('name_week_day', 'sabado');
-            }}>
-            <Text style={styles.defaultButtonTab}>Sabado</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              //setSearchFilters('domingo');
-              getByFilters('name_week_day', 'domingo');
-            }}>
-            <Text style={styles.defaultButtonTab}>Domingo</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.textList}>Posição no mês:</Text>
-        <View style={styles.footerWrapper}>
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('day', 'primeiro');
-            }}>
-            <Text style={styles.defaultButtonTab}>Primeiro</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('day', 'segundo');
-            }}>
-            <Text style={styles.defaultButtonTab}>Segundo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('day', 'terceiro');
-            }}>
-            <Text style={styles.defaultButtonTab}>Terceiro</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('day', 'quarto');
-            }}>
-            <Text style={styles.defaultButtonTab}>Quarto</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              getByFilters('day', 'ultimo');
-            }}>
-            <Text style={styles.defaultButtonTab}>Ultimo</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View >
-    );
-  };
-
-  const ExpandableSortView = ({ expanded = false }) => {
-    const [height] = useState(new Animated.Value(0));
+  const ExpandableSortView = ({ expanded }) => {
+    const height = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
       Animated.timing(height, {
@@ -192,41 +99,41 @@ const SearchScreen = ({ navigation, route }) => {
       }).start();
     }, [expanded, height]);
 
-    // console.log('rerendered');
-
     return (
-      <Animated.View style={{ height, backgroundColor: "#f0f0f0" }}>
-
+      <Animated.View
+        style={{
+          height,
+          borderRadius: 10,
+          margin: 5,
+          backgroundColor: "#f0f0f0",
+        }}
+      >
         <View style={styles.lineSpaceBetwenn}>
           <Text style={styles.textList}>Ordenar por:</Text>
           <TouchableOpacity
             onPress={() => {
-              setIsExpandedSort(false)
-            }}>
-            <Icon
-              size={12}
-              reverse
-              name='close'
-              color='#CFCCCC'
-            />
+              setIsExpandedSort(false);
+            }}
+          >
+            <Icon size={12} reverse name="close" color="#CFCCCC" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.footerWrapper}>
-
           <TouchableOpacity
             onPress={() => {
-              setIsPressed(!isPressed)
+              setIsPressed(!isPressed);
               sortByName();
-            }}>
-
-            {isPressed ? <Text style={styles.sortButtonTab}>Nome ↓ </Text> :
-              <Text style={styles.sortButtonTab}>Nome ↑ </Text>}
-
-
+            }}
+          >
+            {isPressed ? (
+              <Text style={styles.sortButtonTab}>Nome ↓ </Text>
+            ) : (
+              <Text style={styles.sortButtonTab}>Nome ↑ </Text>
+            )}
           </TouchableOpacity>
         </View>
-      </Animated.View >
+      </Animated.View>
     );
   };
 
@@ -236,161 +143,95 @@ const SearchScreen = ({ navigation, route }) => {
         <Text style={styles.text}>Casa de oração:</Text>
         <View style={{ flex: 0.01, flexDirection: "row" }} />
         <View style={styles.line}>
-          <TextInput
-            style={styles.input}
-            placeholder="Pesquisar..."
-            placeholderTextColor="#999999"
-            textAlign="left"
-            autoCapitalize="none"
-            maxLength={16}
-            clearButtonMode="always"
-            onChangeText={(username) => setSeachName(username)}
-          />
-          <TouchableOpacity onPress={() => getAll()}>
-            <Text style={styles.button}>Buscar</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ flex: 5 }}>
+            <TextInput
+              style={styles.input}
+              placeholder="Pesquisar..."
+              placeholderTextColor="#999999"
+              textAlign="left"
+              autoCapitalize="none"
+              maxLength={16}
+              clearButtonMode="while-editing"
+              onChangeText={(searchName) =>
+                (filterBean.searchName = searchName)
+              }
+              onSubmitEditing={() => getByFilters(filterBean)}
+              returnKeyType="search"
+            ></TextInput>
+          </View>
+          <View style={{ position: "absolute", left: 258 }}>
+            <TouchableOpacity onPress={() => getByFilters(filterBean)}>
+              <Icon
+                size={28}
+                style={styles.button}
+                name="search"
+                color="#CFCCCC"
+              />
+              {/* <Text style={styles.button}>Buscar</Text> */}
+            </TouchableOpacity>
+          </View>
 
-        {/* View dos botoes: filtro e limpar */}
-        <View style={styles.line}>
-          {/* Botao FILTRO*/}
+          {/* Botao FILTRO */}
           <TouchableOpacity
+            style={{ flexDirection: "row", ...styles.button, width: 80 }}
             onPress={() => {
               setIsExpanded(!isExpanded);
-              setIsExpandedSort(false)
+              setIsExpandedSort(false);
             }}
           >
-            <Text style={styles.buttonFilter}>Filtro</Text>
-            <Text style={{ ...styles.contentTextList, textTransform: "capitalize" }} />
-          </TouchableOpacity>
-          {/* Botao do LIMPAR */}
-          <TouchableOpacity
-            onPress={() => {
-              setEnsaios(null);
-              setIsExpanded(false)
-              setIsExpandedSort(false)
-              Keyboard.dismiss()
-            }}
-          >
-            <Text style={styles.buttonFilter}>Limpar</Text>
-
-            <Text style={{ ...styles.contentTextList, textTransform: "capitalize" }} />
-
+            <Icon size={28} name="list" color="#CFCCCC"></Icon>
+            <Text style={{ color: "#CFCCCC", fontSize: 18, padding: 4 }}>
+              Filtro
+            </Text>
           </TouchableOpacity>
         </View>
-
-
-        {isExpanded ? <ExpandableView expanded={isExpanded} /> : ""}
-
-        {isExpandedSort ? <ExpandableSortView expanded={isExpandedSort} /> : ""}
 
         {/* Lista de resultados: */}
         {ensaios && ensaios.length > 0 && ensaios ? (
-          <ScrollView>
+          <>
             <View style={styles.lineSpaceBetwenn}>
-              <Text style={styles.smallText}>Encontrados: <Text style={{ fontWeight: 'bold' }}>{ensaios.length}</Text></Text>
+              <Text style={styles.smallText}>
+                Encontrados:{" "}
+                <Text style={{ fontWeight: "bold" }}>{ensaios.length}</Text>
+              </Text>
               <TouchableOpacity
                 onPress={() => {
-                  setIsExpanded(false)
-                  setIsExpandedSort(!isExpandedSort)
-
-                }}>
+                  setIsExpanded(false);
+                  setIsExpandedSort(!isExpandedSort);
+                }}
+              >
                 <Text style={styles.smallText}>Ordenar ↑↓</Text>
               </TouchableOpacity>
-
             </View>
+            {isExpandedSort ? (
+              <ExpandableSortView expanded={isExpandedSort} />
+            ) : (
+              ""
+            )}
 
-            {ensaios.map((ensaio, idx) => (
-              <>
-                {/* Ativar esse touchable em caso futuro (pagina de detalhes) */}
-                {/* <TouchableOpacity 
-                  key={idx}
-                  onPress={() =>
-                    navigation.navigate("Nome", {
-                      ensaio: ensaio.name,
-                      ensaioID: ensaio._id,
-                    })
-                  }
-                  style={{ ...styles.shadow }}
-                > */}
-                <Text style={styles.textLocalityName}>
-                  {ensaio.locality.name}
-                </Text>
-                <View key={idx} style={styles.line}>
-
-                  <View style={styles.colunms}>
-                    <Text style={styles.contentTextList}>
-                      <Text style={{ fontWeight: 'bold' }}>Encarregado: </Text> {ensaio.locality.music_manager_id.name}
-                    </Text>
-                    <Text
-                      style={{
-                        ...styles.contentTextList,
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      <Text style={{ fontWeight: 'bold', textTransform: "none", }}>Dia do mês: </Text> {ensaio.day} {ensaio.name_week_day}
-                    </Text>
-                    <Text style={styles.contentTextList}>
-                      <Text style={{ fontWeight: 'bold', textTransform: "none", }}>Horário: </Text>{ensaio.time}
-                    </Text>
-                    <Text></Text>
-                  </View>
-
-                  <View style={styles.colunms}>
-                    {/* Pendente: Limpar o endereço antigo antes de atualizar */}
-                    <TouchableOpacity key={idx} onPress={() => {
-
-                      //Montango a URL para o MAPA (baseado no SO)
-
-                      console.log(ensaio.locality.address + ensaio.locality.zip_code)
-                      let url = Platform.select({
-                        ios: 'maps:0,0?q=' + ensaio.locality.address + '-' + ensaio.locality.zip_code,
-                        android: 'geo:0,0?q=' + ensaio.locality.address + '-' + ensaio.locality.zip_code
-                      })
-
-                      Linking.openURL(url)
-                    }
-                    }>
-                      <Icon key={idx}
-
-                        reverse
-                        name='map'
-                        type='ionicon'
-                        color='#043d60'
-                      />
-
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View
-                  style={{
-                    borderBottomColor: "black",
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                  }}
-                />
-                {/* </TouchableOpacity> */}
-              </>
-            ))}
-
-
-          </ScrollView>
+            <EnsaiosList ensaios={ensaios} />
+          </>
         ) : (
           <View
             style={{
-              flex: 1,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
             {isLoading ? <TextCentered content={"Carregando..."} /> : ""}
-            {/* <TextCentered content={"Não há resultados"} /> */}
-
           </View>
         )}
       </View>
-    </View >
 
-
+      <Modal
+        bean={filterBean}
+        show={isExpanded}
+        close={() => {
+          console.log("close");
+          setIsExpanded(false);
+        }}
+      />
+    </View>
   );
 };
 
@@ -406,9 +247,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    padding: 1,
-    margin: largura / 50,
+    // padding: 1,
+    // margin: 0,
     borderRadius: 5,
+    width: "100%",
+    height: "100%",
   },
   line: {
     flexDirection: "row",
@@ -417,28 +260,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  colunms: {
-    flexDirection: "column",
-    justifyContent: "center",
-    width: largura - (largura / 4),
-  },
+
   lines: {
     flexDirection: "column",
   },
   button: {
     backgroundColor: "#043d60",
-    margin: 5,
+    margin: 8,
     color: "white",
-    borderRadius: 7,
-    fontSize: 16,
+    borderRadius: 12,
+    // fontSize: 16,
     overflow: "hidden",
-    padding: largura / 40,
-    width: largura / 4,
+    padding: largura / 130,
+    width: largura / 8,
     textAlign: "center",
   },
   buttonFilter: {
     backgroundColor: "#f3f3f3",
-    borderColor: '#043d60',
+    borderColor: "#043d60",
     borderWidth: 0.2,
     margin: 5,
     color: "#043d60",
@@ -453,10 +292,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f3f3",
     textAlign: "center",
     margin: 5,
-    padding: largura / 40,
-    height: largura / 10,
-    borderRadius: 7,
-    width: largura / 1.5,
+    // padding: largura / 40,
+    height: 42,
+    borderRadius: 12,
+    width: "100%",
   },
   text: {
     padding: largura / 40,
@@ -473,29 +312,6 @@ const styles = StyleSheet.create({
     fontSize: largura / 20,
     color: "#043d60",
   },
-  textLocalityName: {
-    padding: largura / 40,
-    fontSize: largura / 20,
-    color: "#043d60",
-    fontWeight: 'bold',
-  },
-  contentTextList: {
-    paddingStart: largura / 40,
-    fontSize: largura / 25,
-  },
-  defaultButtonTab: {
-    // justifyContent: 'center',
-    // alignItems: 'center',
-    maxWidth: 80,
-    height: 30,
-    padding: 5,
-    borderRadius: 13,
-    borderStyle: "solid",
-    borderWidth: 1.3,
-    borderColor: "rgba(131, 143, 158, 0.7)",
-    marginRight: 10,
-    marginTop: -10,
-  },
   sortButtonTab: {
     maxWidth: 100,
     height: 30,
@@ -507,19 +323,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginTop: -10,
   },
-  buttonTab: {
-    justifyContent: "center",
-    alignItems: "center",
-    maxWidth: 150,
-    height: 30,
-    padding: 10,
-    borderRadius: 13,
-    borderStyle: "solid",
-    borderWidth: 1.3,
-    borderColor: "#1994fc",
-    marginRight: 10,
-    marginTop: 10,
-  },
   footerWrapper: {
     flexWrap: "wrap",
     alignItems: "flex-start",
@@ -527,3 +330,5 @@ const styles = StyleSheet.create({
     padding: largura / 40,
   },
 });
+
+
