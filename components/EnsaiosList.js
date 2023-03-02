@@ -28,7 +28,7 @@ const EnsaiosList = ({ ensaios }) => {
       {ensaios.map((ensaio, idx) => (
         <>
           <Text
-            key={`${ensaio.locality.name}_${idx}`}
+            key={ensaio.locality.name + "_" + idx}
             style={styles.textLocalityName}
           >
             {ensaio.locality.name}

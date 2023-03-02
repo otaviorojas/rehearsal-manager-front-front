@@ -25,7 +25,6 @@ import { DAY, LOCALITY_NAME, NAME_WEEK_DAY } from "../constants/TagNames";
 const SearchScreen = ({ navigation, route }) => {
   //variaveis tratadas separadamente
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isExpandedSort, setIsExpandedSort] = useState(false);
   const [ensaios, setEnsaios] = useState();
   const [isPressed, setIsPressed] = useState(false);
   const [isLoading, setLoading] = useState(
@@ -34,6 +33,11 @@ const SearchScreen = ({ navigation, route }) => {
   );
 
   const [filterBean, setFilterBean] = useState(new FilterBean());
+
+  //Faz a busca assim que clicar nos filtros (sabado, primeiro, etc)
+  const updateFilterBean = async (filterBean) => {
+    getByFilters(filterBean)
+  };
 
   const getByFilters = async (bean) => {
     Keyboard.dismiss();
@@ -65,6 +69,7 @@ const SearchScreen = ({ navigation, route }) => {
     const filter = filters.length > 0 ? { $and: filters } : null;
     find("ccb_rehearsal_manager", "rehearsal", filter, sort, signal).then(
       (response) => {
+        //console.log(response.documents[0])
         setEnsaios(response.documents);
         setLoading(false);
       }
@@ -78,63 +83,14 @@ const SearchScreen = ({ navigation, route }) => {
   const getValidValues = (bean, tagName) => {
     const values = [];
     Object.entries(bean)
-        .filter(([key, value]) => value.tagName == tagName)
-        .map(([key, value]) => value.isActive === true ? values.push(key) : ""
-        );
+      .filter(([key, value]) => value.tagName == tagName)
+      .map(([key, value]) => value.isActive === true ? values.push(key) : ""
+      );
     return values;
-}
+  }
 
   const sortByName = () => {
     setEnsaios((ensaio) => [...ensaio.reverse()]);
-  };
-
-  const ExpandableSortView = ({ expanded }) => {
-    const height = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-      Animated.timing(height, {
-        toValue: expanded ? 100 : 0,
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
-    }, [expanded, height]);
-
-    return (
-      <Animated.View
-        style={{
-          height,
-          borderRadius: 10,
-          margin: 5,
-          backgroundColor: "#f0f0f0",
-        }}
-      >
-        <View style={styles.lineSpaceBetwenn}>
-          <Text style={styles.textList}>Ordenar por:</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setIsExpandedSort(false);
-            }}
-          >
-            <Icon size={12} reverse name="close" color="#CFCCCC" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footerWrapper}>
-          <TouchableOpacity
-            onPress={() => {
-              setIsPressed(!isPressed);
-              sortByName();
-            }}
-          >
-            {isPressed ? (
-              <Text style={styles.sortButtonTab}>Nome ↓ </Text>
-            ) : (
-              <Text style={styles.sortButtonTab}>Nome ↑ </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    );
   };
 
   return (
@@ -162,7 +118,7 @@ const SearchScreen = ({ navigation, route }) => {
           <View style={{ position: "absolute", left: 258 }}>
             <TouchableOpacity onPress={() => getByFilters(filterBean)}>
               <Icon
-                size={28}
+                size={30}
                 style={styles.button}
                 name="search"
                 color="#CFCCCC"
@@ -173,14 +129,14 @@ const SearchScreen = ({ navigation, route }) => {
 
           {/* Botao FILTRO */}
           <TouchableOpacity
-            style={{ flexDirection: "row", ...styles.button, width: 80 }}
+            style={{ flexDirection: "row", ...styles.button, width: 70 }}
             onPress={() => {
+              setFilterBean(new FilterBean());//limpar
               setIsExpanded(!isExpanded);
-              setIsExpandedSort(false);
             }}
           >
             <Icon size={28} name="list" color="#CFCCCC"></Icon>
-            <Text style={{ color: "#CFCCCC", fontSize: 18, padding: 4 }}>
+            <Text style={{ color: "#CFCCCC", fontSize: 14, padding: 4 }}>
               Filtro
             </Text>
           </TouchableOpacity>
@@ -196,24 +152,19 @@ const SearchScreen = ({ navigation, route }) => {
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  setIsExpanded(false);
-                  setIsExpandedSort(!isExpandedSort);
+                  sortByName();
                 }}
               >
                 <Text style={styles.smallText}>Ordenar ↑↓</Text>
               </TouchableOpacity>
             </View>
-            {isExpandedSort ? (
-              <ExpandableSortView expanded={isExpandedSort} />
-            ) : (
-              ""
-            )}
 
             <EnsaiosList ensaios={ensaios} />
           </>
         ) : (
           <View
             style={{
+              flex: 1,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -226,6 +177,7 @@ const SearchScreen = ({ navigation, route }) => {
       <Modal
         bean={filterBean}
         show={isExpanded}
+        updateFilterBean={updateFilterBean}
         close={() => {
           console.log("close");
           setIsExpanded(false);
@@ -236,6 +188,7 @@ const SearchScreen = ({ navigation, route }) => {
 };
 
 export default SearchScreen;
+
 
 const largura = Dimensions.get("screen").width;
 
@@ -292,7 +245,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f3f3",
     textAlign: "center",
     margin: 5,
-    // padding: largura / 40,
+    padding: largura / 40,
     height: 42,
     borderRadius: 12,
     width: "100%",

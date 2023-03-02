@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Animated, Dimensions, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import FilterButtons from "./FilterButtons.js";
+import { Button, Icon } from "react-native-elements";
 
 const { height } = Dimensions.get("window");
 
-const Modal = ({ bean, show, close, getByFilters }) => {
+const Modal = ({ bean, show, close, updateFilterBean }) => {
   const [state, setState] = useState({
     opacity: new Animated.Value(0),
     container: new Animated.Value(height),
     modal: new Animated.Value(height),
   });
+
+  const handleButtonPress = (item) => {
+
+    updateFilterBean(item)
+
+  };
 
   const openModal = () => {
     Animated.sequence([
@@ -51,6 +58,13 @@ const Modal = ({ bean, show, close, getByFilters }) => {
     ]).start();
   };
 
+  const closeModalImmediate = () => {
+    Animated.timing(state.modal, {
+      duration: 0,
+      useNativeDriver: true,
+    }).start(close);
+  };
+
   const clear = async () => {
     console.log("clear");
   };
@@ -77,19 +91,53 @@ const Modal = ({ bean, show, close, getByFilters }) => {
           },
         ]}
       >
-        <View style={styles.indicator} />
+
+        <View style={styles.lineSpaceBetwenn}>
+
+          <View>
+            <FilterButtons
+              titulo={"Região"}
+              lista={["carapicuiba", "osasco"]}
+              bean={bean}
+              updateFilterBean={updateFilterBean}
+            />
+          </View>
+          <View >
+            <TouchableOpacity style={styles.closeBtn}
+              onPress={() => {
+                closeModalImmediate();
+              }}>
+              <View>
+                <Icon
+                  size={19}
+                  name='close'
+                  color='#CFCCCC'
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+        </View>
 
         <FilterButtons
           titulo={"Dia da Semana"}
           lista={["sabado", "domingo"]}
           bean={bean}
+          updateFilterBean={updateFilterBean}
         />
 
         <FilterButtons
           titulo={"Posição no mês:"}
           lista={["primeiro", "segundo", "terceiro", "quarto", "ultimo"]}
           bean={bean}
+          updateFilterBean={updateFilterBean}
         />
+
+
+        <TouchableOpacity
+          onPress={() => handleButtonPress(bean)}>
+          <Text style={styles.activeBtn}>Buscar</Text>
+        </TouchableOpacity>
       </Animated.View>
     </Animated.View>
   );
@@ -98,16 +146,18 @@ const Modal = ({ bean, show, close, getByFilters }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 95,
+    marginTop: height / 7.5,
+    //marginTop: 95,
     borderRadius: 20,
     justifyContent: "center",
+    //width: height/1.8,
     width: "100%",
-    height: "30%",
+    height: height / 2.18,
     backgroundColor: "rgba(0, 0, 0, 0)",
     position: "absolute",
   },
   modal: {
-    marginStart: 30,
+    marginStart: height / 5,
     marginEnd: 5,
     height: "100%",
     backgroundColor: "#fff",
@@ -120,27 +170,51 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f3f3",
   },
   indicator: {
-    width: 50,
-    height: 5,
-    marginStart: 290,
-    backgroundColor: "#ccc",
+    width: height / 20,
+    backgroundColor: "#000000",
+    height: 20,
+    padding: 10,
+    marginStart: height / 5,
     borderRadius: 50,
     alignSelf: "center",
+    marginTop: 20,
+  },
+  activeBtn: {
+    marginStart: height / 5,
+    borderRadius: 50,
+    alignSelf: "center",
+    color: "#f0f0f0",
+    backgroundColor: "#043d60",
+    height: 30,
+    padding: 5,
+    borderRadius: 13,
+    borderStyle: "solid",
+    borderWidth: 1.3,
+    borderColor: "rgba(131, 143, 158, 0.7)",
+    marginRight: 5,
     marginTop: 5,
+    textAlign: "center",
   },
   text: {
     fontSize: 15,
     marginTop: 40,
     textAlign: "center",
   },
-  btn: {
-    width: "40%",
-    height: 50,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    margin: "5%",
+  lineSpaceBetwenn: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+    paddingRight: 10,
   },
+  closeBtn: {
+    //esse botao fechar ta horrivel
+    borderRadius: 8,
+    borderStyle: "solid",
+    padding: 5,
+    //borderWidth: 0.1,
+    borderColor: "rgba(131, 143, 158, 0.7)",
+    justifyContent: "center",
+  }
 });
 
 export default Modal;
